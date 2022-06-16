@@ -3,6 +3,7 @@ package ru.itmo.yandex.backend.part2.spring.controller;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnitType;
+import ru.itmo.yandex.backend.part2.spring.validation.CorrectParent;
 import ru.itmo.yandex.backend.part2.spring.validation.CorrectShopUnitImport;
 
 import javax.validation.constraints.NotNull;
@@ -11,6 +12,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @CorrectShopUnitImport
+@CorrectParent
 public class ShopUnitImport {
 
     @NotNull

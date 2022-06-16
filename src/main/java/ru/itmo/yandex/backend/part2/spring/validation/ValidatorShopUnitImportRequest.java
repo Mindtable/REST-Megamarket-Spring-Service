@@ -2,6 +2,7 @@ package ru.itmo.yandex.backend.part2.spring.validation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.itmo.yandex.backend.part2.spring.controller.ShopUnitImport;
 import ru.itmo.yandex.backend.part2.spring.controller.ShopUnitImportRequest;
 
 import javax.validation.ConstraintValidator;
@@ -21,6 +22,6 @@ public class ValidatorShopUnitImportRequest
     @Override
     public boolean isValid(ShopUnitImportRequest value, ConstraintValidatorContext context) {
         logger.info("Validating ShopUnitImportRequest");
-        return value.getItems().stream().distinct().count() == value.getItems().size();
+        return value.getItems().stream().map(ShopUnitImport::getId).distinct().count() == value.getItems().size();
     }
 }

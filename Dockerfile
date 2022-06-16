@@ -1,4 +1,5 @@
 FROM openjdk:17
-ADD target/testapp-0.0.1-SNAPSHOT.jar testapp-0.0.1-SNAPSHOT.jar
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "testapp-0.0.1-SNAPSHOT.jar"]
+
+ENTRYPOINT ["java", "-XX:+UnlockExperimentalVMOptions", "-XX:+UseCGroupMemoryLimitForHeap", "-Djava.security.egd=file:/dev/./urandom","-jar","build/libs/YandexBackendPart2Spring-0.0.1-SNAPSHOT-boot.jar"]

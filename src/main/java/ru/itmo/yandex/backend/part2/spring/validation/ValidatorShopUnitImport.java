@@ -28,6 +28,7 @@ public class ValidatorShopUnitImport implements ConstraintValidator<CorrectShopU
                 isValid = value.getPrice() == null;
             }
         }
+        logger.info(String.valueOf(isValid));
         return isValid;
     }
 }
