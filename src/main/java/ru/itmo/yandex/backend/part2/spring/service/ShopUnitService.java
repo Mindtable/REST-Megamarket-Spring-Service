@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ShopUnitService {
@@ -78,6 +79,33 @@ public class ShopUnitService {
         assert itemToDelete != null;
         removeChildByIdAndPersist(itemToDelete.getParentId(), itemToDelete.getId());
         updateShopUnitParent(parentId, null);
+    }
+
+    public List<ShopUnit> test(ZonedDateTime date) {
+        return repository.findAllByDateBetween(date.minusHours(24), date)
+                .stream()
+                .filter((ShopUnit unit) -> { return unit.getType() == ShopUnitType.OFFER; })
+                .collect(Collectors.toList());
+    }
+
+    public List<ShopUnitStatisticUnit> getStatisticFomShopUnit(UUID id, ZonedDateTime dateStart, ZonedDateTime dateEnd) {
+        var shopUnit = repository.findById(id);
+        if (shopUnit.isEmpty()) {
+            throw new NoSuchShopUnitException();
+        }
+
+        return shopUnit.get().getStats()
+                .stream()
+                .filter((ShopUnitStatisticUnit unit) ->
+                { return dateStart == null ||
+                         unit.getRawDate().isAfter(dateStart) ||
+                         unit.getRawDate().isEqual(dateStart);
+                })
+                .filter((ShopUnitStatisticUnit unit) ->
+                { return dateEnd == null ||
+                        unit.getRawDate().isBefore(dateEnd);
+                })
+                .collect(Collectors.toList());
     }
 
     private UUID updateShopUnit(ShopUnit unit, ShopUnit DBUnit) {

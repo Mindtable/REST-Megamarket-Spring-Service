@@ -24,6 +24,8 @@ import javax.validation.Valid;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import java.time.ZonedDateTime;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -91,6 +93,27 @@ public class MegaMarketController {
 
         shopUnitService.deleteById(id);
         return new ResponseEntity<>(testRespStats, HttpStatus.OK);
+    }
+
+    @GetMapping("/sales")
+    public ResponseEntity<?> testQuerryStats(@Valid @RequestParam String date) {
+        return new ResponseEntity<>(
+                shopUnitService.test(ZonedDateTime.parse(date)),
+                HttpStatus.OK
+        );
+    }
+
+    @GetMapping("/node/{id}/statistic")
+    public ResponseEntity<?> getStatisticForShopUnit(
+            @Valid @PathVariable UUID id,
+            Optional<String> dateStart,
+            Optional<String> dateEnd) {
+        return new ResponseEntity<>(
+                shopUnitService.getStatisticFomShopUnit(id,
+                        dateStart.isEmpty() ? null : ZonedDateTime.parse(dateStart.get()),
+                        dateEnd.isEmpty() ? null : ZonedDateTime.parse(dateEnd.get())),
+                HttpStatus.OK
+        );
     }
 
     private ShopUnit initShopUnit(

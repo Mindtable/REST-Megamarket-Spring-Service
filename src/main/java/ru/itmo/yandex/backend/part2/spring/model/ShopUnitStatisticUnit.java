@@ -15,6 +15,7 @@ import java.util.UUID;
 public class ShopUnitStatisticUnit {
 
     @Id
+    @JsonIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long stats_id;
 
@@ -35,13 +36,13 @@ public class ShopUnitStatisticUnit {
         return itemId;
     }
 
-//    public String getDate() {
-//        return date.format(DateTimeFormatter.ISO_INSTANT).toString();
-//    }
-//
-//    @JsonIgnore
-//    public ZonedDateTime getRawDate() {
-//        return date;
-//    }
+    public String getDate() {
+        return date.format(DateTimeFormatter.ISO_INSTANT).toString();
+    }
+
+    @JsonIgnore
+    public ZonedDateTime getRawDate() {
+        return date;
+    }
 
 }

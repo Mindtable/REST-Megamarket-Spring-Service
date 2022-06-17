@@ -44,7 +44,6 @@ public class ShopUnit {
 
     //TODO: если у родительской категории обновилась цена -- родительская категория считается обновленной
     //TODO: обновление данных может происходить несколько раз в течение обработки одного импортс -- хранить последнее
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "parentId")
     private Set<ShopUnit> children = new HashSet<>();
 
@@ -75,6 +74,17 @@ public class ShopUnit {
         return parentId == null ? null : parentId.getId();
     }
 
+    public Set<ShopUnit> getChildren() {
+        switch (type) {
+            case CATEGORY -> {
+                return children;
+            } case OFFER -> {
+                return null;
+            }
+        }
+        //TODO: define custom UB exception
+        throw new RuntimeException("Exception in getChildren");
+    }
 
 
 

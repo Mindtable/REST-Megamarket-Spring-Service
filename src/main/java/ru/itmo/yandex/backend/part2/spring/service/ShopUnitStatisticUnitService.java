@@ -9,6 +9,8 @@ import ru.itmo.yandex.backend.part2.spring.model.ShopUnitStatisticUnit;
 import ru.itmo.yandex.backend.part2.spring.repository.ShopUnitStatisticUnitRepository;
 import ru.itmo.yandex.backend.part2.spring.validation.ValidatorCorrectParent;
 
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -28,7 +30,7 @@ public class ShopUnitStatisticUnitService {
     public void saveStatisticUnit(ShopUnit unit) {
         var statisticUnitFromDatabase = repository.findTopByItemIdOrderByDateDesc(unit.getId()).orElse(null);
         if (statisticUnitFromDatabase == null ||
-        !statisticUnitFromDatabase.getDate().toInstant().equals(unit.getRawDate().toInstant())) {
+        !statisticUnitFromDatabase.getRawDate().toInstant().equals(unit.getRawDate().toInstant())) {
             logger.info("stat item not found in db");
             repository.save(initStatistics(unit));
         } else {
