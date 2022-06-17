@@ -48,6 +48,11 @@ public class ShopUnit {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "parentId")
     private Set<ShopUnit> children = new HashSet<>();
 
+    @JsonIgnore
+    @OneToMany(cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "itemId")
+    private Set<ShopUnitStatisticUnit> stats;
+
     public String getDate() {
         return date.format(DateTimeFormatter.ISO_INSTANT).toString();
     }

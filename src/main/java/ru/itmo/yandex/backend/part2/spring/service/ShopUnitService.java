@@ -16,7 +16,9 @@ import ru.itmo.yandex.backend.part2.spring.repository.ShopUnitRepository;
 import ru.itmo.yandex.backend.part2.spring.repository.ShopUnitStatisticUnitRepository;
 import ru.itmo.yandex.backend.part2.spring.validation.ValidatorCorrectParent;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -34,7 +36,7 @@ public class ShopUnitService {
         logger = LoggerFactory.getLogger(ValidatorCorrectParent.class);
     }
 
-    public UUID saveShopUnit(ShopUnit unit) {
+    public List<UUID> saveShopUnit(ShopUnit unit) {
         var DBUnit = repository.findById(unit.getId());
         var parentsNeedToBeUpdated = new ArrayList<UUID>();
 
@@ -55,21 +57,27 @@ public class ShopUnitService {
             }
 
             addChildAndPersist(existingDatabaseUnit.getParentId(), existingDatabaseUnit);
-        } else {
+        } else if (unit.getParentId() != null){
             addChildAndPersist(unit.getParentId(), unit);
+        } else {
+            repository.save(unit);
         }
-        parentsNeedToBeUpdated.forEach(this::updateShopUnitParent);
-        return unit.getId();
+        parentsNeedToBeUpdated.forEach((UUID parentId) -> {
+            updateShopUnitParent(parentId, unit.getRawDate());
+        });
+        return parentsNeedToBeUpdated;
     }
 
     public void deleteById(UUID id) {
         if (getByID(id) == null) {
             throw new NoSuchShopUnitException();
         }
-        var itemToDelete = repository.findById(id).orElse(null);
+        var itemToDelete = getByID(id);
         var parentId = itemToDelete == null ? null : itemToDelete.getParentId();
         repository.deleteById(id);
-        updateShopUnitParent(parentId);
+        assert itemToDelete != null;
+        removeChildByIdAndPersist(itemToDelete.getParentId(), itemToDelete.getId());
+        updateShopUnitParent(parentId, null);
     }
 
     private UUID updateShopUnit(ShopUnit unit, ShopUnit DBUnit) {
@@ -114,7 +122,7 @@ public class ShopUnitService {
         return result;
     }
 
-    private void updateShopUnitParent(UUID unitId) {
+    private void updateShopUnitParent(UUID unitId, ZonedDateTime date) {
         while (unitId != null) {
             var currentShopUnit = getByID(unitId);
 
@@ -123,6 +131,10 @@ public class ShopUnitService {
             }
 
             recalculatePriceAndChildCount(currentShopUnit);
+
+            if (date != null) {
+                currentShopUnit.setDate(date);
+            }
 
             repository.save(currentShopUnit);
 
@@ -137,6 +149,10 @@ public class ShopUnitService {
 
     private void removeChildByIdAndPersist(UUID databaseEntity, UUID childId) {
         var oldParent = getByID(databaseEntity);
+
+        if (oldParent == null) {
+            return;
+        }
 
         oldParent.getChildren().removeIf((ShopUnit u) -> {
             return Objects.equals(u.getId(), childId);
@@ -153,18 +169,7 @@ public class ShopUnitService {
         }
     }
 
-    public ShopUnitStatisticUnit initStatistics(ShopUnit unit) {
-        var statisticUnit = new ShopUnitStatisticUnit();
 
-        statisticUnit.setId(unit.getId());
-        statisticUnit.setType(unit.getType());
-        statisticUnit.setDate(unit.getRawDate());
-        statisticUnit.setName(unit.getName());
-        statisticUnit.setPrice(unit.getPrice());
-//        statisticUnit.setParentId(unit.getParentId());
-
-        return statisticUnit;
-    }
 }
 
 //TODO: rename class

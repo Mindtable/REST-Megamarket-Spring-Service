@@ -8,7 +8,6 @@ import org.springframework.http.*;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +17,7 @@ import ru.itmo.yandex.backend.part2.spring.exceptions.NoSuchShopUnitException;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnit;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnitType;
 import ru.itmo.yandex.backend.part2.spring.service.ShopUnitService;
+import ru.itmo.yandex.backend.part2.spring.service.ShopUnitStatisticUnitService;
 
 import javax.transaction.Transactional;
 import javax.validation.Valid;
@@ -32,44 +32,36 @@ import static javax.transaction.Transactional.TxType.NEVER;
 @RestController
 //@RequestMapping("/api")
 public class MegaMarketController {
-    private final ShopUnitService service;
+    private final ShopUnitService shopUnitService;
+    private final ShopUnitStatisticUnitService statisticUnitService;
     private final Validator validator;
 
     private final Logger logger;
     private final PlatformTransactionManager trManager;
 
     @Autowired
-    public MegaMarketController(ShopUnitService service, PlatformTransactionManager transactionManager) {
-        this.service = service;
+    public MegaMarketController(ShopUnitService service, ShopUnitStatisticUnitService statisticUnitService, PlatformTransactionManager transactionManager) {
+        this.shopUnitService = service;
+        this.statisticUnitService = statisticUnitService;
         this.trManager = transactionManager;
         validator = Validation.buildDefaultValidatorFactory().getValidator();
         logger = LoggerFactory.getLogger(MegaMarketController.class);
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<?> testController() {
-        return new ResponseEntity<>(
-                "Hello world",
-                HttpStatus.OK
-        );
-    }
     @Transactional(value = NEVER)
     @PostMapping("/imports")
-    public ResponseEntity<?> testImports(@Valid @RequestBody ShopUnitImportRequest unit) throws NoSuchMethodException, MethodArgumentNotValidException {
+    public ResponseEntity<?> imports(@Valid @RequestBody ShopUnitImportRequest unit) throws NoSuchMethodException, MethodArgumentNotValidException {
         TransactionDefinition trDefinition = new DefaultTransactionDefinition();
         TransactionStatus trStatus = trManager.getTransaction(trDefinition);
 
-        for (var elem: unit.getItems()) {
-            System.out.println("VALIDATING " + elem.getId());
-            var toDB = initShopUnit(elem, unit.getUpdateDate());
-            System.out.println(toDB.getRawPrice());
-            service.saveShopUnit(toDB);
+        for (var shopUnit: unit.getItems()) {
+            var toDB = initShopUnit(shopUnit, unit.getUpdateDate());
+            var parentsNeedToBeUpdated = shopUnitService.saveShopUnit(toDB);
+            statisticUnitService.saveStatisticUnit(toDB);
+            parentsNeedToBeUpdated.forEach(this::updateStatistic);
         }
 
-
         trManager.commit(trStatus);
-        System.out.println(trStatus.isRollbackOnly());
-        System.out.println(trStatus.isCompleted());
 
         return new ResponseEntity<>(
                 unit.getItems().stream().map(ShopUnitImport::getId).collect(Collectors.toList()),
@@ -79,25 +71,9 @@ public class MegaMarketController {
 
     }
 
-    @PostMapping("/testPost")
-    public ResponseEntity<?> testPOST(@Valid @RequestBody ShopUnitImport imp) {
-        return new ResponseEntity<>(
-                "Hello world",
-                HttpStatus.OK
-        );
-    }
-
-    @PostMapping("/testPostImport")
-    public ResponseEntity<?> testPostImport(@Valid @RequestBody ShopUnitImportRequest imp) {
-        return new ResponseEntity<>(
-                "Testing import",
-                HttpStatus.OK
-        );
-    }
-
     @GetMapping("/nodes/{id}")
-    public ResponseEntity<?> testGets(@Validated @PathVariable UUID id) {
-        var shopUnit = service.getByID(id);
+    public ResponseEntity<?> getNode(@Validated @PathVariable UUID id) {
+        var shopUnit = shopUnitService.getByID(id);
         if (shopUnit == null) {
             throw new NoSuchShopUnitException();
         }
@@ -110,18 +86,14 @@ public class MegaMarketController {
     @Transactional(value = NEVER)
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> testDelete(@Validated @PathVariable UUID id) {
-//        TransactionDefinition trDefinition = new DefaultTransactionDefinition();
-//        TransactionStatus trStatus = trManager.getTransaction(trDefinition);
+        var testResp = shopUnitService.getByID(id);
+        var testRespStats = testResp == null ? null : testResp.getStats();
 
-        service.deleteById(id);
-//        trManager.commit(trStatus);
-//        System.out.println(trStatus.isRollbackOnly());
-//        System.out.println(trStatus.isCompleted());
-//        System.out.println("Hello world");
-        return new ResponseEntity<>(HttpStatus.OK);
+        shopUnitService.deleteById(id);
+        return new ResponseEntity<>(testRespStats, HttpStatus.OK);
     }
 
-    public ShopUnit initShopUnit(
+    private ShopUnit initShopUnit(
             ShopUnitImport elem,
             ZonedDateTime updateTime) throws NoSuchMethodException, MethodArgumentNotValidException {
 
@@ -142,8 +114,16 @@ public class MegaMarketController {
         toDB.setDate(updateTime);
         toDB.setId(elem.getId());
         toDB.setName(elem.getName());
-        toDB.setParentId(elem.getParentId() == null ? null : service.getByID(elem.getParentId()));
+        toDB.setParentId(elem.getParentId() == null ? null : shopUnitService.getByID(elem.getParentId()));
 
         return toDB;
+    }
+
+    private void updateStatistic(UUID shopUnitId) {
+        while (shopUnitId != null) {
+            var shopUnit = shopUnitService.getByID(shopUnitId);
+            statisticUnitService.saveStatisticUnit(shopUnit);
+            shopUnitId = shopUnit.getParentId();
+        }
     }
 }
