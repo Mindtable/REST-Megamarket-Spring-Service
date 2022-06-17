@@ -16,6 +16,7 @@ import ru.itmo.yandex.backend.part2.spring.repository.ShopUnitRepository;
 import ru.itmo.yandex.backend.part2.spring.repository.ShopUnitStatisticUnitRepository;
 import ru.itmo.yandex.backend.part2.spring.validation.ValidatorCorrectParent;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,26 +36,29 @@ public class ShopUnitService {
 
     public UUID saveShopUnit(ShopUnit unit) {
         var DBUnit = repository.findById(unit.getId());
+        var parentsNeedToBeUpdated = new ArrayList<UUID>();
+
+        if (unit.getParentId() != null) {
+            parentsNeedToBeUpdated.add(unit.getParentId());
+        }
 
         if (DBUnit.isPresent()) {
             logger.info("item has been found");
 
-            var oldParent = updateShopUnit(unit, DBUnit.get());
+            var existingDatabaseUnit = DBUnit.get();
 
-            var statisticUnit = initStatistics(DBUnit.get());
+            var oldParentId = updateShopUnit(unit, existingDatabaseUnit);
 
-            repository.save(DBUnit.get());
-            stats_repo.save(statisticUnit);
+            if (oldParentId != null) {
+                removeChildByIdAndPersist(oldParentId, existingDatabaseUnit.getId());
+                parentsNeedToBeUpdated.add(oldParentId);
+            }
 
-            updateShopUnitParent(oldParent);
+            addChildAndPersist(existingDatabaseUnit.getParentId(), existingDatabaseUnit);
         } else {
-
-            var statisticUnit = initStatistics(unit);
-
-            repository.save(unit);
-            stats_repo.save(statisticUnit);
+            addChildAndPersist(unit.getParentId(), unit);
         }
-        updateShopUnitParent(unit.getParentId());
+        parentsNeedToBeUpdated.forEach(this::updateShopUnitParent);
         return unit.getId();
     }
 
@@ -83,7 +87,7 @@ public class ShopUnitService {
             // If parent has changed, I should update old parent tree too
 
             updatedParent = DBUnit.getParentId();
-            DBUnit.setParentId(unit.getParentId());
+            DBUnit.setParentId(unit.getParentId() == null ? null : getByID(unit.getParentId()));
         }
 
         DBUnit.setName(unit.getName());
@@ -127,7 +131,26 @@ public class ShopUnitService {
     }
 
     public ShopUnit getByID(UUID id) {
+        if (id == null) return null;
         return repository.findById(id).orElse(null);
+    }
+
+    private void removeChildByIdAndPersist(UUID databaseEntity, UUID childId) {
+        var oldParent = getByID(databaseEntity);
+
+        oldParent.getChildren().removeIf((ShopUnit u) -> {
+            return Objects.equals(u.getId(), childId);
+        });
+
+        repository.save(oldParent);
+    }
+
+    private void addChildAndPersist(UUID databaseEntity, ShopUnit newChild) {
+        var newParent = getByID(databaseEntity);
+        if (newParent != null) {
+            newParent.getChildren().add(newChild);
+            repository.save(newParent);
+        }
     }
 
     public ShopUnitStatisticUnit initStatistics(ShopUnit unit) {
@@ -138,7 +161,7 @@ public class ShopUnitService {
         statisticUnit.setDate(unit.getRawDate());
         statisticUnit.setName(unit.getName());
         statisticUnit.setPrice(unit.getPrice());
-        statisticUnit.setParentId(unit.getParentId());
+//        statisticUnit.setParentId(unit.getParentId());
 
         return statisticUnit;
     }

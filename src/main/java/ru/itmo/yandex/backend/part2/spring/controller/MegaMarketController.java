@@ -142,7 +142,7 @@ public class MegaMarketController {
         toDB.setDate(updateTime);
         toDB.setId(elem.getId());
         toDB.setName(elem.getName());
-        toDB.setParentId(elem.getParentId());
+        toDB.setParentId(elem.getParentId() == null ? null : service.getByID(elem.getParentId()));
 
         return toDB;
     }

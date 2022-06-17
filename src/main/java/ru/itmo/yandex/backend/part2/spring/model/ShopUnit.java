@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.micrometer.core.lang.Nullable;
 import lombok.*;
+import ru.itmo.yandex.backend.part2.spring.controller.ShopUnitImport;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -28,8 +29,9 @@ public class ShopUnit {
     @Column(name = "date", nullable = false)
     private ZonedDateTime date;
 
-    @Column(name = "parentId", nullable = true)
-    private UUID parentId;
+    @ManyToOne
+    @JoinColumn(name = "fk_parentid")
+    private ShopUnit parentId;
 
     @Column(name = "type", nullable = false)
     private ShopUnitType type;
@@ -43,14 +45,8 @@ public class ShopUnit {
     //TODO: если у родительской категории обновилась цена -- родительская категория считается обновленной
     //TODO: обновление данных может происходить несколько раз в течение обработки одного импортс -- хранить последнее
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
-    @JoinColumn(name="parentId")
-    private Set<ShopUnit> children;
-
-//    @JsonIgnore
-    @OneToMany(cascade = CascadeType.REMOVE)
-    @JoinColumn(name = "id")
-    private Set<ShopUnitStatisticUnit> stats;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "parentId")
+    private Set<ShopUnit> children = new HashSet<>();
 
     public String getDate() {
         return date.format(DateTimeFormatter.ISO_INSTANT).toString();
@@ -70,6 +66,9 @@ public class ShopUnit {
         return price;
     }
 
+    public UUID getParentId() {
+        return parentId == null ? null : parentId.getId();
+    }
 
 
 
