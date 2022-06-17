@@ -4,9 +4,7 @@ import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import ru.itmo.yandex.backend.part2.spring.exceptions.NoSuchShopUnitException;
 import ru.itmo.yandex.backend.part2.spring.exceptions.UndefinedThingException;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnit;
@@ -25,7 +23,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class ShopUnitService {
-
     private ShopUnitRepository repository;
     private ShopUnitStatisticUnitRepository stats_repo;
     private final Logger logger;
@@ -46,7 +43,8 @@ public class ShopUnitService {
         }
 
         if (DBUnit.isPresent()) {
-            logger.info("item has been found");
+            logger.info("ShopUnit found in database: updating");
+            logger.info("id: " + unit.getId() + "; previous date: " + DBUnit.get().getDate());
 
             var existingDatabaseUnit = DBUnit.get();
 
@@ -58,14 +56,20 @@ public class ShopUnitService {
             }
 
             addChildAndPersist(existingDatabaseUnit.getParentId(), existingDatabaseUnit);
+
         } else if (unit.getParentId() != null){
+
             addChildAndPersist(unit.getParentId(), unit);
+
         } else {
+
             repository.save(unit);
+
         }
         parentsNeedToBeUpdated.forEach((UUID parentId) -> {
             updateShopUnitParent(parentId, unit.getRawDate());
         });
+
         return parentsNeedToBeUpdated;
     }
 
@@ -73,23 +77,27 @@ public class ShopUnitService {
         if (getByID(id) == null) {
             throw new NoSuchShopUnitException();
         }
+
         var itemToDelete = getByID(id);
+
         var parentId = itemToDelete == null ? null : itemToDelete.getParentId();
         repository.deleteById(id);
+
         assert itemToDelete != null;
         removeChildByIdAndPersist(itemToDelete.getParentId(), itemToDelete.getId());
         updateShopUnitParent(parentId, null);
     }
 
-    public List<ShopUnit> test(ZonedDateTime date) {
+    public List<ShopUnit> getAllUpdatedOfferWithin24Hours(ZonedDateTime date) {
         return repository.findAllByDateBetween(date.minusHours(24), date)
                 .stream()
-                .filter((ShopUnit unit) -> { return unit.getType() == ShopUnitType.OFFER; })
+                .filter((ShopUnit unit) -> unit.getType() == ShopUnitType.OFFER)
                 .collect(Collectors.toList());
     }
 
     public List<ShopUnitStatisticUnit> getStatisticFomShopUnit(UUID id, ZonedDateTime dateStart, ZonedDateTime dateEnd) {
         var shopUnit = repository.findById(id);
+
         if (shopUnit.isEmpty()) {
             throw new NoSuchShopUnitException();
         }
@@ -112,9 +120,9 @@ public class ShopUnitService {
         UUID updatedParent = null;
 
         if (DBUnit.getType() != unit.getType()) {
-            //TODO: хуйня какая-то
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY);
+            throw new UndefinedThingException("You was trying to change type of ShopUnit from category to offer or backwards");
         }
+
         if (DBUnit.getType() == ShopUnitType.OFFER) {
             DBUnit.setPrice(unit.getRawPrice());
         }
@@ -132,19 +140,19 @@ public class ShopUnitService {
         return updatedParent;
     }
 
-    private void recalculatePriceAndChildCount(ShopUnit unit) {
-        var newData = calculateChildCount(unit);
+    private void updatePriceAndChildCount(ShopUnit unit) {
+        var newData = calculateNewPriceForCategory(unit);
         unit.setChildCount(newData.getChildCount());
         unit.setPrice(newData.getPrice());
     }
 
-    private AveragePriceResult calculateChildCount(ShopUnit unit) {
-        logger.info("Updating parent " + unit.getId());
-        var result = new AveragePriceResult();
+    private NewPriceForCategory calculateNewPriceForCategory(ShopUnit unit) {
+        logger.info("Calculating new price for parent ShopUnit with id: " + unit.getId());
+        var result = new NewPriceForCategory();
 
         for (var child: unit.getChildren()) {
-            result.incChildCount(child.getChildCount());
-            result.incPrice(child.getRawPrice());
+            result.increaseChildCount(child.getChildCount());
+            result.increasePrice(child.getRawPrice());
         }
 
         return result;
@@ -155,10 +163,10 @@ public class ShopUnitService {
             var currentShopUnit = getByID(unitId);
 
             if (currentShopUnit.getType() == ShopUnitType.OFFER) {
-                throw new UndefinedThingException();
+                throw new UndefinedThingException("Was provided parent of offer type to updateShopUnitParent");
             }
 
-            recalculatePriceAndChildCount(currentShopUnit);
+            updatePriceAndChildCount(currentShopUnit);
 
             if (date != null) {
                 currentShopUnit.setDate(date);
@@ -202,20 +210,20 @@ public class ShopUnitService {
 
 //TODO: rename class
 @Data
-class AveragePriceResult {
+class NewPriceForCategory {
     private long price;
     private long childCount;
 
-    public AveragePriceResult() {
+    public NewPriceForCategory() {
         price = 0;
         childCount = 0;
     }
 
-    public void incPrice(Long value) {
+    public void increasePrice(Long value) {
         price += value == null ? 0 : value;
     }
 
-    public void incChildCount(Long value) {
+    public void increaseChildCount(Long value) {
         childCount += value == null ? 0 : value;
     }
 }

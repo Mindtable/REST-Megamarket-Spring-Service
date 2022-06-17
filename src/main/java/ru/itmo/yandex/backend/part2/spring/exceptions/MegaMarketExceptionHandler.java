@@ -51,4 +51,15 @@ public class MegaMarketExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.BAD_REQUEST
         );
     }
+
+    @ExceptionHandler(UndefinedBehaviorException.class)
+    public ResponseEntity<?> handleUndefinedBehaviour(
+            UndefinedBehaviorException e,
+            WebRequest request
+    ) {
+        return new ResponseEntity<>(
+                new Error(502, e.getMessage()),
+                HttpStatus.BAD_GATEWAY
+        );
+    }
 }

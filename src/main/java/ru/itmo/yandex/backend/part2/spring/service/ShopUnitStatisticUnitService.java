@@ -15,8 +15,6 @@ import java.util.Objects;
 
 @Service
 public class ShopUnitStatisticUnitService {
-
-
     private final ShopUnitStatisticUnitRepository repository;
 
     private final Logger logger;
@@ -30,8 +28,9 @@ public class ShopUnitStatisticUnitService {
     public void saveStatisticUnit(ShopUnit unit) {
         var statisticUnitFromDatabase = repository.findTopByItemIdOrderByDateDesc(unit.getId()).orElse(null);
         if (statisticUnitFromDatabase == null ||
-        !statisticUnitFromDatabase.getRawDate().toInstant().equals(unit.getRawDate().toInstant())) {
-            logger.info("stat item not found in db");
+                !Objects.equals(statisticUnitFromDatabase.getRawDate().toInstant(), unit.getRawDate().toInstant())) {
+            logger.info("Statistic item found in database: overwriting current state");
+            logger.info("id: " + unit.getId() + "; date: " + unit.getDate());
             repository.save(initStatistics(unit));
         } else {
             updateExistingStatistics(statisticUnitFromDatabase, unit);

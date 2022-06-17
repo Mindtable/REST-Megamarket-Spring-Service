@@ -25,7 +25,6 @@ import javax.validation.Validation;
 import javax.validation.Validator;
 import java.time.ZonedDateTime;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -60,6 +59,13 @@ public class MegaMarketController {
             var toDB = initShopUnit(shopUnit, unit.getUpdateDate());
             var parentsNeedToBeUpdated = shopUnitService.saveShopUnit(toDB);
             statisticUnitService.saveStatisticUnit(toDB);
+
+            if (toDB.getType() == ShopUnitType.CATEGORY &&
+                    shopUnitService.getByID(toDB.getId()).getChildCount() == 0) {
+                // You don't need to update parent tree, if you're updating empty category
+                continue;
+            }
+
             parentsNeedToBeUpdated.forEach(this::updateStatistic);
         }
 
@@ -98,7 +104,7 @@ public class MegaMarketController {
     @GetMapping("/sales")
     public ResponseEntity<?> testQuerryStats(@Valid @RequestParam String date) {
         return new ResponseEntity<>(
-                shopUnitService.test(ZonedDateTime.parse(date)),
+                shopUnitService.getAllUpdatedOfferWithin24Hours(ZonedDateTime.parse(date)),
                 HttpStatus.OK
         );
     }
