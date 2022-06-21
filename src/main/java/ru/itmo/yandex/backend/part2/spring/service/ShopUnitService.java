@@ -88,13 +88,6 @@ public class ShopUnitService {
         updateShopUnitParent(parentId, null);
     }
 
-    public List<ShopUnit> getAllUpdatedOfferWithin24Hours(ZonedDateTime date) {
-        return repository.findAllByDateBetween(date.minusHours(24), date)
-                .stream()
-                .filter((ShopUnit unit) -> unit.getType() == ShopUnitType.OFFER)
-                .collect(Collectors.toList());
-    }
-
     public List<ShopUnitStatisticUnit> getStatisticFomShopUnit(UUID id, ZonedDateTime dateStart, ZonedDateTime dateEnd) {
         var shopUnit = repository.findById(id);
 

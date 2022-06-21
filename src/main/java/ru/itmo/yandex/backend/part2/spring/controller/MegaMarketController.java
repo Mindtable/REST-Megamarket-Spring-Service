@@ -72,7 +72,7 @@ public class MegaMarketController {
         trManager.commit(trStatus);
 
         return new ResponseEntity<>(
-                unit.getItems().stream().map(ShopUnitImport::getId).collect(Collectors.toList()),
+//                unit.getItems().stream().map(ShopUnitImport::getId).collect(Collectors.toList()),
                 HttpStatus.OK
         );
 
@@ -94,30 +94,35 @@ public class MegaMarketController {
     @Transactional(value = NEVER)
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> testDelete(@Validated @PathVariable UUID id) {
-        var testResp = shopUnitService.getByID(id);
-        var testRespStats = testResp == null ? null : testResp.getStats();
+//        var testResp = shopUnitService.getByID(id);
+//        var testRespStats = testResp == null ? null : testResp.getStats();
 
         shopUnitService.deleteById(id);
-        return new ResponseEntity<>(testRespStats, HttpStatus.OK);
+        return new ResponseEntity<>(
+//                testRespStats,
+                HttpStatus.OK);
     }
 
     @GetMapping("/sales")
-    public ResponseEntity<?> testQuerryStats(@Valid @RequestParam String date) {
+    public ResponseEntity<?> getUpdatedSales(@Valid @RequestParam String date) {
         return new ResponseEntity<>(
-                shopUnitService.getAllUpdatedOfferWithin24Hours(ZonedDateTime.parse(date)),
+                new ShopUnitStatisticResponce(statisticUnitService.getAllUpdatedOfferWithin24Hours(ZonedDateTime.parse(date))),
                 HttpStatus.OK
         );
     }
 
+
+    //TODO: should respond with map of {items: [JSON ARRAY]}
     @GetMapping("/node/{id}/statistic")
     public ResponseEntity<?> getStatisticForShopUnit(
             @Valid @PathVariable UUID id,
             Optional<String> dateStart,
             Optional<String> dateEnd) {
+
         return new ResponseEntity<>(
-                shopUnitService.getStatisticFomShopUnit(id,
+                new ShopUnitStatisticResponce(shopUnitService.getStatisticFomShopUnit(id,
                         dateStart.isEmpty() ? null : ZonedDateTime.parse(dateStart.get()),
-                        dateEnd.isEmpty() ? null : ZonedDateTime.parse(dateEnd.get())),
+                        dateEnd.isEmpty() ? null : ZonedDateTime.parse(dateEnd.get()))),
                 HttpStatus.OK
         );
     }

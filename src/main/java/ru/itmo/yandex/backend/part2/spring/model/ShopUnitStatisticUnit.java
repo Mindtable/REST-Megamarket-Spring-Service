@@ -19,6 +19,7 @@ public class ShopUnitStatisticUnit {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long stats_id;
 
+    @JsonIgnore
     @Column(name = "itemId")
     private UUID itemId;
 
@@ -36,8 +37,9 @@ public class ShopUnitStatisticUnit {
         return itemId;
     }
 
+    //TODO: regex check date to ISO 8601
     public String getDate() {
-        return date.format(DateTimeFormatter.ISO_INSTANT).toString();
+        return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.nnn'Z'")).toString();
     }
 
     @JsonIgnore

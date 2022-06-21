@@ -53,7 +53,7 @@ public class ShopUnit {
     private Set<ShopUnitStatisticUnit> stats;
 
     public String getDate() {
-        return date.format(DateTimeFormatter.ISO_INSTANT).toString();
+        return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.nnn'Z'")).toString();
     }
 
     @JsonIgnore

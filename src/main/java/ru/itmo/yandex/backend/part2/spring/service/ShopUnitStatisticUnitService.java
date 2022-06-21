@@ -6,12 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnit;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnitStatisticUnit;
+import ru.itmo.yandex.backend.part2.spring.model.ShopUnitType;
 import ru.itmo.yandex.backend.part2.spring.repository.ShopUnitStatisticUnitRepository;
 import ru.itmo.yandex.backend.part2.spring.validation.ValidatorCorrectParent;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class ShopUnitStatisticUnitService {
@@ -23,6 +25,13 @@ public class ShopUnitStatisticUnitService {
     public ShopUnitStatisticUnitService(ShopUnitStatisticUnitRepository repository) {
         this.repository = repository;
         logger = LoggerFactory.getLogger(ShopUnitStatisticUnitService.class);
+    }
+
+    public List<ShopUnitStatisticUnit> getAllUpdatedOfferWithin24Hours(ZonedDateTime date) {
+        return repository.findAllByDateBetween(date.minusHours(24), date)
+                .stream()
+                .filter((ShopUnitStatisticUnit unit) -> unit.getType() == ShopUnitType.OFFER)
+                .collect(Collectors.toList());
     }
 
     public void saveStatisticUnit(ShopUnit unit) {

@@ -3,6 +3,7 @@ package ru.itmo.yandex.backend.part2.spring.exceptions;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +12,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import javax.validation.ValidationException;
+import java.time.DateTimeException;
 
 @ControllerAdvice
 public class MegaMarketExceptionHandler extends ResponseEntityExceptionHandler {
@@ -41,7 +43,7 @@ public class MegaMarketExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
-    @ExceptionHandler({MethodArgumentTypeMismatchException.class, ValidationException.class})
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, ValidationException.class, DateTimeException.class})
     public ResponseEntity<?> handleValidationFailure(
             RuntimeException e,
             WebRequest request
@@ -60,6 +62,14 @@ public class MegaMarketExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(
                 new Error(502, e.getMessage()),
                 HttpStatus.BAD_GATEWAY
+        );
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+        return new ResponseEntity<>(
+                new Error(400, "Validation failed"),
+                HttpStatus.BAD_REQUEST
         );
     }
 }
