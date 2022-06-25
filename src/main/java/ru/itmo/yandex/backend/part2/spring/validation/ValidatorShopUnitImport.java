@@ -23,7 +23,7 @@ public class ValidatorShopUnitImport implements ConstraintValidator<CorrectShopU
         boolean isValid = false;
         switch (value.getType()) {
             case OFFER -> {
-                isValid = value.getPrice() != null;
+                isValid = value.getPrice() != null && value.getPrice() >= 0;
             } case CATEGORY -> {
                 isValid = value.getPrice() == null;
             }

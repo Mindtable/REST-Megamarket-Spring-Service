@@ -53,7 +53,10 @@ public class ShopUnit {
     private Set<ShopUnitStatisticUnit> stats;
 
     public String getDate() {
-        return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.nnn'Z'")).toString();
+        return DateTimeFormatter
+                .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.from(ZoneOffset.UTC))
+                .format(date.toInstant());
     }
 
     @JsonIgnore

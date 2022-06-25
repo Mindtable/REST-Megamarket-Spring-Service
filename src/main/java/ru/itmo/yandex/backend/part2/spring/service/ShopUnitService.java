@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.itmo.yandex.backend.part2.spring.exceptions.NoSuchShopUnitException;
+import ru.itmo.yandex.backend.part2.spring.exceptions.ShopUnitTypeChangeException;
 import ru.itmo.yandex.backend.part2.spring.exceptions.UndefinedThingException;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnit;
 import ru.itmo.yandex.backend.part2.spring.model.ShopUnitStatisticUnit;
@@ -109,11 +110,29 @@ public class ShopUnitService {
                 .collect(Collectors.toList());
     }
 
+    public List<ShopUnitStatisticUnit> getAllUpdatedOfferWithin24Hours(ZonedDateTime date) {
+        return repository.findAllByDateBetween(date.minusHours(24), date)
+                .stream()
+                .filter((ShopUnit unit) -> unit.getType() == ShopUnitType.OFFER)
+                .map((ShopUnit unit) -> {
+                    ShopUnitStatisticUnit result = new ShopUnitStatisticUnit();
+                    result.setItemId(unit.getId());
+                    result.setPrice(unit.getPrice());
+                    result.setName(unit.getName());
+                    result.setParentId(unit.getParentId());
+                    result.setType(unit.getType());
+                    result.setDate(unit.getRawDate());
+
+                    return result;
+                })
+                .collect(Collectors.toList());
+    }
+
     private UUID updateShopUnit(ShopUnit unit, ShopUnit DBUnit) {
         UUID updatedParent = null;
 
         if (DBUnit.getType() != unit.getType()) {
-            throw new UndefinedThingException("You was trying to change type of ShopUnit from category to offer or backwards");
+            throw new ShopUnitTypeChangeException("You was trying to change type of ShopUnit from category to offer or backwards");
         }
 
         if (DBUnit.getType() == ShopUnitType.OFFER) {

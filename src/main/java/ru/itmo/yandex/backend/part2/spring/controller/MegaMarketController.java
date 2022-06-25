@@ -3,6 +3,7 @@ package ru.itmo.yandex.backend.part2.spring.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.*;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -23,6 +24,7 @@ import javax.transaction.Transactional;
 import javax.validation.Valid;
 import javax.validation.Validation;
 import javax.validation.Validator;
+import javax.validation.constraints.Pattern;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,7 +33,6 @@ import java.util.stream.Collectors;
 import static javax.transaction.Transactional.TxType.NEVER;
 
 @RestController
-//@RequestMapping("/api")
 public class MegaMarketController {
     private final ShopUnitService shopUnitService;
     private final ShopUnitStatisticUnitService statisticUnitService;
@@ -56,7 +57,7 @@ public class MegaMarketController {
         TransactionStatus trStatus = trManager.getTransaction(trDefinition);
 
         for (var shopUnit: unit.getItems()) {
-            var toDB = initShopUnit(shopUnit, unit.getUpdateDate());
+            var toDB = initShopUnit(shopUnit, ZonedDateTime.parse(unit.getUpdateDate()));
             var parentsNeedToBeUpdated = shopUnitService.saveShopUnit(toDB);
             statisticUnitService.saveStatisticUnit(toDB);
 
@@ -94,19 +95,16 @@ public class MegaMarketController {
     @Transactional(value = NEVER)
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> testDelete(@Validated @PathVariable UUID id) {
-//        var testResp = shopUnitService.getByID(id);
-//        var testRespStats = testResp == null ? null : testResp.getStats();
-
         shopUnitService.deleteById(id);
         return new ResponseEntity<>(
-//                testRespStats,
                 HttpStatus.OK);
     }
 
     @GetMapping("/sales")
-    public ResponseEntity<?> getUpdatedSales(@Valid @RequestParam String date) {
+    public ResponseEntity<?> getUpdatedSales(@Valid @Pattern(regexp = "^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$")
+                                                 @RequestParam String date) {
         return new ResponseEntity<>(
-                new ShopUnitStatisticResponce(statisticUnitService.getAllUpdatedOfferWithin24Hours(ZonedDateTime.parse(date))),
+                new ShopUnitStatisticResponce(shopUnitService.getAllUpdatedOfferWithin24Hours(ZonedDateTime.parse(date))),
                 HttpStatus.OK
         );
     }
@@ -116,8 +114,10 @@ public class MegaMarketController {
     @GetMapping("/node/{id}/statistic")
     public ResponseEntity<?> getStatisticForShopUnit(
             @Valid @PathVariable UUID id,
-            Optional<String> dateStart,
-            Optional<String> dateEnd) {
+            @Valid @Pattern(regexp = "^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$")
+            @RequestParam Optional<String> dateStart,
+            @Valid @Pattern(regexp = "^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$")
+            @RequestParam Optional<String> dateEnd) {
 
         return new ResponseEntity<>(
                 new ShopUnitStatisticResponce(shopUnitService.getStatisticFomShopUnit(id,
@@ -132,7 +132,7 @@ public class MegaMarketController {
             ZonedDateTime updateTime) throws NoSuchMethodException, MethodArgumentNotValidException {
 
         BeanPropertyBindingResult errors = new BeanPropertyBindingResult(elem, "ShopUnitImport");
-        System.out.println("CHECKING ELEM");
+        System.out.println("CHECKING ELEMENT");
         if (!validator.validate(elem).isEmpty()) {
             throw new MethodArgumentNotValidException(
                     new MethodParameter(this.getClass().getDeclaredMethod("initShopUnit", ShopUnitImport.class, ZonedDateTime.class), 0),

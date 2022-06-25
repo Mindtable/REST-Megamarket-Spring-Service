@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -37,9 +39,12 @@ public class ShopUnitStatisticUnit {
         return itemId;
     }
 
-    //TODO: regex check date to ISO 8601
+
     public String getDate() {
-        return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.nnn'Z'")).toString();
+        return DateTimeFormatter
+                .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.from(ZoneOffset.UTC))
+                .format(date.toInstant());
     }
 
     @JsonIgnore

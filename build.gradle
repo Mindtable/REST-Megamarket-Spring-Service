@@ -29,6 +29,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/javax.validation/validation-api
     implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'junit:junit:4.13.1'
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-core
     developmentOnly 'ch.qos.logback:logback-core:1.2.11'
@@ -48,8 +49,11 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    module 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.7.3'
+    testCompileOnly 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.7.3'
+    compileOnly 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.7.3'
 }
 
-tasks.named('test') {
+test {
     useJUnitPlatform()
 }

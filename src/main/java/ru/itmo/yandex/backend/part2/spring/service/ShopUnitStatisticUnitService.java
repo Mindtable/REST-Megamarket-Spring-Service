@@ -27,12 +27,7 @@ public class ShopUnitStatisticUnitService {
         logger = LoggerFactory.getLogger(ShopUnitStatisticUnitService.class);
     }
 
-    public List<ShopUnitStatisticUnit> getAllUpdatedOfferWithin24Hours(ZonedDateTime date) {
-        return repository.findAllByDateBetween(date.minusHours(24), date)
-                .stream()
-                .filter((ShopUnitStatisticUnit unit) -> unit.getType() == ShopUnitType.OFFER)
-                .collect(Collectors.toList());
-    }
+
 
     public void saveStatisticUnit(ShopUnit unit) {
         var statisticUnitFromDatabase = repository.findTopByItemIdOrderByDateDesc(unit.getId()).orElse(null);
