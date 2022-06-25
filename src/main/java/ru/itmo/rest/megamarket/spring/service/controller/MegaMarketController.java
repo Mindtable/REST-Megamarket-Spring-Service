@@ -33,10 +33,14 @@ import static javax.transaction.Transactional.TxType.NEVER;
 @RestController
 public class MegaMarketController {
     private final ShopUnitService shopUnitService;
-    private final ShopUnitStatisticUnitService statisticUnitService;
-    private final Validator validator;
 
-    private final Logger logger;
+    private boolean isInitialized = false;
+    private final ShopUnitStatisticUnitService statisticUnitService;
+
+    @Autowired
+    private Validator validator;
+
+//    private final Logger logger;
     private final PlatformTransactionManager trManager;
 
     @Autowired
@@ -44,8 +48,30 @@ public class MegaMarketController {
         this.shopUnitService = service;
         this.statisticUnitService = statisticUnitService;
         this.trManager = transactionManager;
-        validator = Validation.buildDefaultValidatorFactory().getValidator();
-        logger = LoggerFactory.getLogger(MegaMarketController.class);
+//        validator = Validation.buildDefaultValidatorFactory().getValidator();
+//        logger = LoggerFactory.getLogger(MegaMarketController.class);
+    }
+
+    @GetMapping("/init")
+    public void initialize() {
+        if (isInitialized) {
+            return;
+        }
+        isInitialized = true;
+        System.out.println("initialazing...");
+        var initItem = new ShopUnitImport(
+                UUID.randomUUID(),
+                "test name",
+                null,
+                ShopUnitType.CATEGORY,
+                null
+        );
+
+        validator.validate(initItem);
+
+        TransactionDefinition trDefinition = new DefaultTransactionDefinition();
+        TransactionStatus trStatus = trManager.getTransaction(trDefinition);
+        trManager.commit(trStatus);
     }
 
     @Transactional(value = NEVER)
